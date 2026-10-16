@@ -1,0 +1,610 @@
+@import "tailwindcss";
+
+:root {
+  /* ─── Default / Dark Theme Tokens (Red + Black + White, iOS Style) ─────────────── */
+  --bg-page: #060608;
+  --bg-page-gradient: radial-gradient(circle 900px at 0% 15%, rgba(255, 59, 48, 0.15) 0%, transparent 65%),
+                      radial-gradient(circle 700px at 100% 100%, rgba(180, 20, 30, 0.08) 0%, transparent 70%);
+  --bg-glow-layer: radial-gradient(circle 900px at 0% 15%, rgba(255, 59, 48, 0.15) 0%, transparent 65%),
+                   radial-gradient(circle 700px at 100% 100%, rgba(180, 20, 30, 0.08) 0%, transparent 70%);
+
+
+  --bg-card: rgba(255, 255, 255, 0.05);
+  --bg-card-hover: rgba(255, 255, 255, 0.08);
+  --bg-glass-subtle: rgba(255, 255, 255, 0.03);
+  --bg-dock: rgba(15, 15, 17, 0.85);
+  --dock-tooltip-bg: rgba(18, 18, 20, 0.96);
+
+  --card-border: rgba(255, 255, 255, 0.10);
+  --card-border-hover: rgba(255, 59, 48, 0.45);
+  --card-inset-highlight: rgba(255, 255, 255, 0.20);
+  --card-shadow: 0 10px 40px rgba(0, 0, 0, 0.50);
+  --card-shadow-hover: 0 10px 40px rgba(0, 0, 0, 0.50), 0 0 24px rgba(255, 59, 48, 0.18);
+  --card-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 30%, transparent 60%);
+
+  --border: rgba(255, 255, 255, 0.10);
+  --border-muted: rgba(255, 255, 255, 0.06);
+  --border-focus: var(--brand-red);
+
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.65);
+  --text-muted: rgba(255, 255, 255, 0.45);
+
+  --bg-input: rgba(255, 255, 255, 0.05);
+
+  /* ─── Brand Red System ────────────────────────────────────────── */
+  --brand-red: #FF3B30;
+  --brand-red-bright: #FF5247;
+  --brand-red-deep: #B3141C;
+  --brand-red-dark: #C4161C;
+
+  /* Primary Button (Red Gradient with Glow) */
+  --primary-btn-bg: linear-gradient(135deg, #FF3B30 0%, #C4161C 100%);
+  --primary-btn-hover: linear-gradient(135deg, #FF5247 0%, #D41C23 100%);
+  --primary-btn-glow: 0 4px 20px rgba(255, 59, 48, 0.38);
+
+  /* Fallback aliases for components */
+  --ios-blue: var(--brand-red);
+  --ios-purple: var(--brand-red-deep);
+  --ios-pink: var(--brand-red-bright);
+  --ios-teal: var(--brand-red);
+  --ios-orange: var(--brand-red-bright);
+  --ios-green: var(--brand-red-bright);
+  --ios-red: var(--brand-red);
+
+  --glow-orange: var(--brand-red);
+  --accent-red: var(--brand-red);
+  --bg-base: var(--bg-page);
+
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ─── Light Theme Tokens (Clean White + Red Glow, iOS Style) ────────────────────────── */
+html.light,
+html[data-theme="light"] {
+  --bg-page: #FFFFFF;
+  --bg-page-gradient: radial-gradient(circle 800px at 50% 0%, rgba(255, 59, 48, 0.08) 0%, transparent 60%);
+  --bg-glow-layer: radial-gradient(circle 800px at 50% 0%, rgba(255, 59, 48, 0.08) 0%, transparent 60%);
+
+  --bg-card: rgba(255, 255, 255, 0.80);
+  --bg-card-hover: rgba(255, 255, 255, 0.95);
+  --bg-glass-subtle: rgba(255, 255, 255, 0.60);
+  --bg-dock: rgba(255, 255, 255, 0.85);
+  --dock-tooltip-bg: rgba(255, 255, 255, 0.96);
+
+  --card-border: rgba(0, 0, 0, 0.08);
+  --card-border-hover: rgba(255, 59, 48, 0.45);
+  --card-inset-highlight: rgba(255, 255, 255, 0.90);
+  --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  --card-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.08), 0 0 20px rgba(255, 59, 48, 0.15);
+  --card-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.80) 0%, rgba(255, 255, 255, 0.20) 30%, transparent 60%);
+
+  --border: rgba(0, 0, 0, 0.08);
+  --border-muted: rgba(0, 0, 0, 0.05);
+  --border-focus: var(--brand-red);
+
+  --text-primary: #0A0A0A;
+  --text-secondary: rgba(0, 0, 0, 0.60);
+  --text-muted: rgba(0, 0, 0, 0.40);
+
+  --bg-input: rgba(255, 255, 255, 0.90);
+
+  /* ─── Brand Red System ────────────────────────────────────────── */
+  --brand-red: #FF3B30;
+  --brand-red-bright: #FF5247;
+  --brand-red-deep: #B3141C;
+  --brand-red-dark: #C4161C;
+
+  --primary-btn-bg: linear-gradient(135deg, #FF3B30 0%, #C4161C 100%);
+  --primary-btn-hover: linear-gradient(135deg, #FF5247 0%, #D41C23 100%);
+  --primary-btn-glow: 0 4px 20px rgba(255, 59, 48, 0.25);
+
+  --ios-blue: var(--brand-red);
+  --ios-purple: var(--brand-red-deep);
+  --ios-pink: var(--brand-red-bright);
+  --ios-teal: var(--brand-red);
+  --ios-orange: var(--brand-red-bright);
+  --ios-green: var(--brand-red-bright);
+  --ios-red: var(--brand-red);
+
+  --glow-orange: var(--brand-red);
+  --accent-red: var(--brand-red);
+  --bg-base: var(--bg-page);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-page);
+  background-image: var(--bg-page-gradient);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+  position: relative;
+}
+
+.bg-glow-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: var(--bg-glow-layer);
+  background-attachment: fixed;
+}
+
+/* Subtle cross-fade on surface switches without layout shifts */
+.card, .glass, .floating-glass-nav, .btn, .input, header, nav, main {
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+h1, h2, h3, h4, .page-title {
+  color: var(--text-primary);
+  letter-spacing: -0.015em;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ─── iOS Liquid Glass Surfaces ─────────────────────────────────────────── */
+.glass {
+  position: relative;
+  background: var(--bg-card);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  box-shadow: inset 0 1px 0 var(--card-inset-highlight), var(--card-shadow);
+  transition: transform 0.20s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.18s ease, box-shadow 0.18s ease, background-color 180ms ease, color 180ms ease;
+  overflow: hidden;
+}
+
+/* Diagonal specular sheen for liquid glass look */
+.glass::before,
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--card-sheen);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.glass > *,
+.card > * {
+  position: relative;
+  z-index: 2;
+}
+
+.glass:hover {
+  transform: scale(1.02);
+  border-color: var(--card-border-hover);
+}
+
+.glass:active {
+  transform: scale(0.97);
+}
+
+.glass-subtle {
+  background: var(--bg-glass-subtle);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid var(--border-muted);
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 var(--card-inset-highlight);
+}
+
+.card {
+  position: relative;
+  background: var(--bg-card);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  box-shadow: inset 0 1px 0 var(--card-inset-highlight), var(--card-shadow);
+  padding: 1.5rem; /* 24px standard */
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 180ms ease, color 180ms ease;
+  overflow: hidden;
+}
+
+.card:hover {
+  border-color: var(--card-border-hover);
+  box-shadow: inset 0 1px 0 var(--card-inset-highlight), var(--card-shadow-hover);
+}
+
+/* Fallback for browsers without backdrop-filter support */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .glass, .card, .floating-glass-nav {
+    background: #121214 !important;
+  }
+  html.light .glass,
+  html.light .card,
+  html.light .floating-glass-nav {
+    background: #FFFFFF !important;
+  }
+}
+
+/* ─── Score Badges on Glass Chips (Red / White / Gray Family) ───────────── */
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  line-height: 1.2;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20);
+  white-space: nowrap;
+}
+
+/* 80+ = white text on red-tinted chip (brand style) */
+.score-badge-high {
+  color: #FFFFFF;
+  background: rgba(255, 59, 48, 0.28);
+  border: 1px solid rgba(255, 59, 48, 0.55);
+}
+
+/* 50-79 = white text on lighter red-tinted chip */
+.score-badge-mid {
+  color: #FFFFFF;
+  background: rgba(255, 59, 48, 0.16);
+  border: 1px solid rgba(255, 59, 48, 0.35);
+}
+
+/* Below 50 = deeper red chip */
+.score-badge-low {
+  color: #FFFFFF;
+  background: rgba(179, 20, 28, 0.32);
+  border: 1px solid rgba(179, 20, 28, 0.55);
+}
+
+/* Unanalyzed neutral glass chip */
+.score-badge-none {
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--card-border);
+}
+
+/* ─── Buttons & Liquid Glass Pills ──────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.55rem 1.25rem;
+  border-radius: 9999px; /* Pill */
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+  border: 1px solid transparent;
+  outline: none;
+  text-decoration: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.btn:hover:not(:disabled) {
+  transform: scale(1.02);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Brand Red Primary Gradient Button (#FF3B30 to #C4161C with Red Glow) */
+.btn-glass-primary,
+.btn-primary {
+  background: var(--primary-btn-bg);
+  color: #FFFFFF !important;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30), var(--primary-btn-glow);
+}
+
+.btn-glass-primary:hover:not(:disabled),
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-btn-hover);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.40), 0 6px 24px rgba(255, 59, 48, 0.50);
+}
+
+/* Secondary Glass Pill: dark glass with white text, red border and tint on hover */
+.btn-glass,
+.btn-secondary {
+  background: var(--bg-card);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  color: var(--text-primary);
+  border: 1px solid var(--card-border);
+  box-shadow: inset 0 1px 0 var(--card-inset-highlight), 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.btn-glass:hover:not(:disabled),
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 59, 48, 0.12);
+  border-color: rgba(255, 59, 48, 0.45);
+  color: var(--text-primary);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border-radius: 9999px;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background-color: rgba(255, 59, 48, 0.10);
+  color: var(--text-primary);
+}
+
+/* Circular icon-only pill button */
+.btn-icon {
+  width: 2.125rem !important;
+  height: 2.125rem !important;
+  min-width: 2.125rem !important;
+  min-height: 2.125rem !important;
+  padding: 0 !important;
+  border-radius: 9999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+/* Inputs */
+.input {
+  width: 100%;
+  background: var(--bg-input);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  color: var(--text-primary);
+  padding: 0.625rem 1.15rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  box-shadow: inset 0 1px 0 var(--card-inset-highlight);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input:focus {
+  border-color: var(--brand-red);
+  box-shadow: inset 0 1px 0 var(--card-inset-highlight), 0 0 0 2px rgba(255, 59, 48, 0.35);
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ─── App Layout & Single Navigation Dock ────────────────────────────────── */
+.app-layout-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background-color: transparent;
+  position: relative;
+}
+
+/* Main scrollable area - centered max-width container with balanced padding */
+.app-main-content {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  min-height: 100vh;
+  margin-left: 0;
+  padding-left: 5rem; /* clearance for w-14 sidebar on left */
+  padding-right: 1.25rem;
+  padding-top: 1.5rem;
+  padding-bottom: 3rem;
+  background-color: transparent;
+  overflow-y: auto;
+}
+
+@media (min-width: 640px) {
+  .app-main-content {
+    padding-left: 6rem; /* clearance for w-16 sidebar */
+    padding-right: 2rem;
+    padding-top: 2rem;
+    padding-bottom: 4rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-main-content {
+    padding-left: 6.5rem; /* ~104px */
+    padding-right: 2.5rem;
+    padding-top: 2.5rem;
+    padding-bottom: 5rem;
+  }
+}
+
+/* Universal Page Container */
+.page-container {
+  width: 100%;
+  max-width: 80rem; /* max-w-7xl */
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem 1.5rem;
+  box-sizing: border-box;
+  animation: pageEntrance 350ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 768px) {
+  .page-container {
+    padding-left: 2.5rem; /* px-10 */
+    padding-right: 2.5rem;
+  }
+}
+
+@keyframes pageEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Stagger card entrances */
+.stagger-container > *:nth-child(1) { animation: pageEntrance 300ms ease-out forwards; }
+.stagger-container > *:nth-child(2) { animation: pageEntrance 350ms ease-out forwards; }
+.stagger-container > *:nth-child(3) { animation: pageEntrance 400ms ease-out forwards; }
+.stagger-container > *:nth-child(4) { animation: pageEntrance 450ms ease-out forwards; }
+
+/* Consistent page title & section headers */
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+  line-height: 1.25;
+}
+
+.page-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Card Column Alignment */
+.card-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.card-column-body {
+  flex: 1 1 auto;
+}
+
+.card-column-action {
+  margin-top: auto;
+  padding-top: 1.25rem;
+}
+
+/* ─── Floating Glass Bottom Dock (Single Universal Nav) ──────────────────── */
+.floating-glass-nav {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 2rem);
+  max-width: 640px;
+  height: 64px;
+  background: var(--bg-dock);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--card-border);
+  border-radius: 9999px;
+  box-shadow: inset 0 1px 0 var(--card-inset-highlight), 0 16px 40px rgba(0, 0, 0, 0.40);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.85rem;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .floating-glass-nav {
+    bottom: 0.75rem;
+    width: calc(100% - 1rem);
+    height: 58px;
+    padding: 0 0.45rem;
+  }
+}
+
+/* Dock Tooltip Pill (pure transform & opacity animation) */
+.dock-pill {
+  opacity: 0;
+  transform: translate(-50%, 6px);
+  transition: opacity 160ms ease-out, transform 160ms ease-out;
+  transition-delay: 0ms;
+  will-change: opacity, transform;
+  pointer-events: none;
+}
+
+.group:hover .dock-pill,
+.group:focus-within .dock-pill,
+.group:focus-visible .dock-pill {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  transition-delay: 60ms;
+}
+
+/* Mobile Layout adjustments */
+@media (max-width: 767px) {
+  .page-container {
+    padding: 1.25rem 0.875rem;
+  }
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .dock-pill {
+    transition: none !important;
+    transform: translate(-50%, 0) !important;
+  }
+  .page-container {
+    animation: none !important;
+  }
+}
+
+/* Print Stylesheet */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print,
+  .floating-glass-nav,
+  nav {
+    display: none !important;
+  }
+  .app-main-content {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .page-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  .card {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #e2e8f0 !important;
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+}
