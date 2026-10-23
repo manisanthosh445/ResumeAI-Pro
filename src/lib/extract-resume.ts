@@ -1,125 +1,25 @@
 /**
  * Server-side resume text extractor.
- * Supports text PDFs, DOCX, TXT, and image resumes through OCR via Tesseract.js.
+ * Supports text PDFs, DOCX, TXT, and image resumes (PNG, JPG, JPEG, WEBP, etc.)
+ * Image text extraction uses Google Gemini Vision via the existing Gemini client.
  */
 
-import { createWorker, type Worker, type LoggerMessage } from 'tesseract.js'
-import { GEMINI_MODEL, GEMINI_FALLBACK_MODEL } from './gemini'
+import {
+  generateWithRetry,
+  getFriendlyErrorMessage,
+  sanitizeForLogging,
+  GEMINI_MODEL,
+  GEMINI_FALLBACK_MODEL,
+} from './gemini'
 
-export { GEMINI_MODEL, GEMINI_FALLBACK_MODEL, createWorker }
-export type { LoggerMessage }
+export { GEMINI_MODEL, GEMINI_FALLBACK_MODEL }
+export type LoggerMessage = { status: string; progress: number }
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
-const MAX_OCR_WORKERS = 2
 
 export interface ExtractResult {
   text: string
   pageCount?: number
-}
-
-/**
- * Concurrency-safe worker pool for Tesseract.js OCR.
- * - Creates workers lazily up to MAX_OCR_WORKERS.
- * - Reuses idle workers instead of spawning a new worker per image.
- * - Queues concurrent requests safely so shared worker state is never corrupted.
- * - Safely terminates and replaces broken workers if recognition throws.
- */
-class TesseractWorkerPool {
-  private workers: Worker[] = []
-  private idleWorkers: Worker[] = []
-  private queue: Array<{
-    resolve: (worker: Worker) => void
-    reject: (err: unknown) => void
-  }> = []
-  private isTerminating = false
-
-  async acquire(): Promise<Worker> {
-    if (this.isTerminating) {
-      throw new Error('OCR worker pool has been terminated.')
-    }
-
-    // 1. Reuse an existing idle worker
-    const idle = this.idleWorkers.pop()
-    if (idle) {
-      return idle
-    }
-
-    // 2. Initialize a new worker on demand if under the concurrency limit
-    if (this.workers.length < MAX_OCR_WORKERS) {
-      const { createWorker } = await import('tesseract.js')
-      const worker = await createWorker('eng', undefined, {
-        logger: (m: { status: string; progress: number }): void => {
-          if (process.env.DEBUG_OCR === 'true') {
-            console.log(`[OCR Logger] ${m.status}: ${Math.round((m.progress || 0) * 100)}%`)
-          }
-        },
-      })
-      this.workers.push(worker)
-      return worker
-    }
-
-    // 3. Queue request until an active worker is released
-    return new Promise<Worker>((resolve, reject) => {
-      this.queue.push({ resolve, reject })
-    })
-  }
-
-  release(worker: Worker): void {
-    if (this.isTerminating) {
-      worker.terminate().catch((err) => console.error('[OCR Pool] Worker termination error:', err))
-      return
-    }
-
-    const next = this.queue.shift()
-    if (next) {
-      next.resolve(worker)
-    } else {
-      this.idleWorkers.push(worker)
-    }
-  }
-
-  async destroyWorker(worker: Worker): Promise<void> {
-    const workerIdx = this.workers.indexOf(worker)
-    if (workerIdx !== -1) {
-      this.workers.splice(workerIdx, 1)
-    }
-    const idleIdx = this.idleWorkers.indexOf(worker)
-    if (idleIdx !== -1) {
-      this.idleWorkers.splice(idleIdx, 1)
-    }
-
-    try {
-      await worker.terminate()
-    } catch (err) {
-      console.error('[OCR Pool] Error terminating unhealthy worker:', err)
-    }
-  }
-
-  async terminateAll(): Promise<void> {
-    this.isTerminating = true
-    while (this.queue.length > 0) {
-      const pending = this.queue.shift()
-      pending?.reject(new Error('OCR worker pool terminated.'))
-    }
-    const currentWorkers = [...this.workers]
-    this.workers = []
-    this.idleWorkers = []
-    await Promise.all(
-      currentWorkers.map((w) =>
-        w.terminate().catch((err) => console.error('[OCR Pool] Error during shutdown:', err))
-      )
-    )
-  }
-}
-
-// Global singleton worker pool for the Node.js server runtime
-const ocrPool = new TesseractWorkerPool()
-
-// Register graceful teardown on process exit
-if (typeof process !== 'undefined') {
-  process.once('beforeExit', () => {
-    ocrPool.terminateAll().catch(() => {})
-  })
 }
 
 export async function extractResumeText(
@@ -153,7 +53,7 @@ export async function extractResumeText(
     ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'tif', 'tiff'].includes(ext ?? '') ||
     mimeType.startsWith('image/')
   ) {
-    return extractImage(buffer)
+    return extractImage(buffer, mimeType, fileName)
   }
 
   if (ext === 'doc' || mimeType === 'application/msword') {
@@ -170,10 +70,14 @@ export async function extractResumeText(
 function validateText(value: string): ExtractResult {
   const text = value.trim()
 
-  if (text.length < 50) {
-    throw new Error(
-      'Could not find enough readable resume text in this file.'
-    )
+  if (
+    !text ||
+    text.toUpperCase() === 'NONE' ||
+    text.length < 50 ||
+    text.toLowerCase().includes('contains no text') ||
+    text.toLowerCase().includes('no text or other discernible content')
+  ) {
+    throw new Error('Could not find enough readable resume text in this file.')
   }
 
   return { text }
@@ -237,31 +141,80 @@ async function extractDocx(buffer: Buffer): Promise<ExtractResult> {
   }
 }
 
-async function extractImage(buffer: Buffer): Promise<ExtractResult> {
-  let worker: Worker | null = null
+async function extractImage(
+  buffer: Buffer,
+  mimeType: string,
+  fileName: string
+): Promise<ExtractResult> {
+  const startTime = Date.now()
+  let resolvedMime = mimeType
+  const ext = fileName.split('.').pop()?.toLowerCase()
+
+  if (!resolvedMime || resolvedMime === 'application/octet-stream') {
+    if (ext === 'png') resolvedMime = 'image/png'
+    else if (ext === 'webp') resolvedMime = 'image/webp'
+    else resolvedMime = 'image/jpeg'
+  } else if (resolvedMime === 'image/jpg') {
+    resolvedMime = 'image/jpeg'
+  }
+
+  console.log(
+    `[Upload OCR] Starting image text extraction via Gemini Vision (${resolvedMime}, ${Math.round(buffer.length / 1024)} KB)...`
+  )
+
   try {
-    worker = await ocrPool.acquire()
-    const result = await worker.recognize(buffer)
-    const text = result.data.text?.trim() ?? ''
+    const base64Data = buffer.toString('base64')
+    const prompt =
+      'Extract and transcribe all text from this resume image accurately, completely, and in reading order. ' +
+      'Preserve all sections, headings, contact details, work experience, education, skills, bullet points, dates, and metrics. ' +
+      'Output ONLY the raw extracted resume text, without any added conversational commentary, markdown wrappers, or explanations. ' +
+      'If the image contains no readable text, output ONLY the word: NONE'
+
+    const result = await generateWithRetry(
+      {
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                inlineData: {
+                  data: base64Data,
+                  mimeType: resolvedMime,
+                },
+              },
+              {
+                text: prompt,
+              },
+            ],
+          },
+        ],
+        config: {
+          temperature: 0.1,
+          maxOutputTokens: 4096,
+        },
+      },
+      undefined,
+      {
+        maxRetriesPerModel: 1,
+        attemptTimeoutMs: 15_000,
+        totalTimeoutMs: 25_000,
+      }
+    )
+
+    const text = result.text?.trim() ?? ''
+    const duration = Date.now() - startTime
+    console.log(
+      `[Upload OCR] Completed in ${duration}ms using ${result.modelUsed} (${text.length} chars extracted).`
+    )
+
     return validateText(text)
   } catch (err: unknown) {
-    if (worker) {
-      // If recognition threw an unhandled error, the worker's internal state may be corrupted.
-      // Terminate and discard this worker so future OCR jobs get a fresh instance.
-      await ocrPool.destroyWorker(worker)
-      worker = null
-    }
-
-    console.error('[Image OCR] Recognition failed:', err)
+    const duration = Date.now() - startTime
+    console.error(`[Upload OCR] Failed after ${duration}ms:`, sanitizeForLogging(err))
     if (err instanceof Error && err.message.includes('readable resume text')) {
       throw err
     }
-
-    const detail = err instanceof Error ? err.message : String(err)
-    throw new Error(`Failed to extract text from image: ${detail}`)
-  } finally {
-    if (worker) {
-      ocrPool.release(worker)
-    }
+    const friendly = getFriendlyErrorMessage(err)
+    throw new Error(`Failed to extract text from image resume: ${friendly}`)
   }
 }

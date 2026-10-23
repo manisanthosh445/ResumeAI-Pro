@@ -6,6 +6,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 30
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -29,14 +30,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    console.log(`[Upload] Processing "${file.name}" (${file.type || 'unknown type'}, ${Math.round(file.size / 1024)} KB)`)
+
     // Read file into buffer
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
     // Extract text
+    const extractStartTime = Date.now()
     const { text, pageCount } = await extractResumeText(buffer, file.type, file.name)
+    const extractDuration = Date.now() - extractStartTime
+    console.log(`[Upload] Extracted ${text.length} chars from "${file.name}" in ${extractDuration}ms`)
 
     // Store in Supabase
+    const dbStartTime = Date.now()
     const { data: resume, error: insertError } = await supabase
       .from('resumes')
       .insert({
@@ -47,10 +54,15 @@ export async function POST(request: NextRequest) {
       .select('id')
       .single()
 
+    const dbDuration = Date.now() - dbStartTime
+
     if (insertError || !resume) {
-      console.error('Resume insert error:', insertError)
-      return NextResponse.json({ error: 'Failed to save resume.' }, { status: 500 })
+      console.error('[Upload] Resume DB insert error:', insertError?.message || insertError)
+      return NextResponse.json({ error: 'Failed to save resume to database.' }, { status: 500 })
     }
+
+    const totalDuration = Date.now() - startTime
+    console.log(`[Upload] Completed upload for resumeId=${resume.id} in ${totalDuration}ms (db: ${dbDuration}ms)`)
 
     return NextResponse.json({
       resumeId: resume.id,
@@ -60,8 +72,20 @@ export async function POST(request: NextRequest) {
       preview: text.slice(0, 500),
     })
   } catch (err) {
-    console.error('[Upload Route] Extraction or processing error:', err)
-    const message = err instanceof Error ? err.message : 'An unexpected error occurred.'
-    return NextResponse.json({ error: message }, { status: 400 })
+    const totalDuration = Date.now() - startTime
+    console.error(`[Upload] Failed after ${totalDuration}ms:`, err instanceof Error ? err.message : String(err))
+    const message = err instanceof Error ? err.message : 'An unexpected error occurred during resume processing.'
+
+    // Classify error status for appropriate HTTP reporting
+    let status = 400
+    if (message.includes('AI service is busy') || message.includes('503')) {
+      status = 503
+    } else if (message.includes('AI key problem') || message.includes('GEMINI_API_KEY')) {
+      status = 500
+    } else if (message.includes('502') || message.includes('invalid response')) {
+      status = 502
+    }
+
+    return NextResponse.json({ error: message }, { status })
   }
 }
