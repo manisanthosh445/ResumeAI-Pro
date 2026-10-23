@@ -1,4 +1,4 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 import { Logo } from '@/components/ui/Logo'
 import { Upload, BookOpen, HelpCircle, ArrowRight } from 'lucide-react'
 import { isSupabaseConfigured } from '@/lib/supabase/is-configured'
@@ -42,7 +42,7 @@ export default async function HomePage() {
               Sign In
             </Link>
             <Link href="/auth/signup" prefetch={true} className="btn btn-primary text-xs">
-              Get Started
+              Create Account
             </Link>
           </div>
         </div>
@@ -69,7 +69,7 @@ export default async function HomePage() {
 
           <div className="flex justify-center gap-4 flex-wrap">
             <Link href="/auth/signup" prefetch={true} className="btn btn-primary text-sm h-11 px-6">
-              <span>Get Started Free</span>
+              <span>Create Account</span>
               <ArrowRight size={16} />
             </Link>
             <Link href="/auth/login" prefetch={true} className="btn btn-secondary text-sm h-11 px-6">
@@ -113,3 +113,4 @@ export default async function HomePage() {
     </div>
   )
 }
+

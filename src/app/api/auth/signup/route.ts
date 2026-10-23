@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+﻿import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
@@ -24,6 +24,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!fullName) {
+      return NextResponse.json(
+        { error: 'Full name is required.' },
+        { status: 400 }
+      )
+    }
+
     if (password.length < 8) {
       return NextResponse.json(
         { error: 'Password must be at least 8 characters long.' },
@@ -44,8 +51,9 @@ export async function POST(request: NextRequest) {
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    if (!supabaseUrl || !serviceRoleKey) {
+    if (!supabaseUrl || !serviceRoleKey || !supabaseAnonKey) {
       console.error('[AUTH] Supabase configuration missing for signup')
       return NextResponse.json(
         { error: 'Server authentication configuration missing.' },
@@ -53,46 +61,64 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Use admin client to check if a confirmed user with this email already exists
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
+      auth: { persistSession: false, autoRefreshToken: false },
     })
 
-    // Create user with email auto-confirmed so no OTP step is required
-    const { data: createData, error: createError } = await adminClient.auth.admin.createUser({
+    const { data: listData } = await adminClient.auth.admin.listUsers()
+    const existingUser = listData?.users?.find(
+      (u) => u.email?.toLowerCase() === email
+    )
+
+    if (existingUser?.email_confirmed_at) {
+      return NextResponse.json(
+        { error: 'An account with this email already exists. Sign in instead.', alreadyExists: true },
+        { status: 409 }
+      )
+    }
+
+    // Use the anon client so Supabase sends a real confirmation OTP email.
+    // We do NOT pass email_confirm:true — the user must verify via OTP.
+    const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+
+    const { data: signUpData, error: signUpError } = await anonClient.auth.signUp({
       email,
       password,
-      email_confirm: true,
-      user_metadata: {
-        full_name: fullName,
+      options: {
+        data: {
+          full_name: fullName,
+        },
       },
     })
 
-    if (createError) {
-      console.warn(`[AUTH] Signup failed for ${email}:`, createError.message)
-      const msg = (createError.message || '').toLowerCase()
+    if (signUpError) {
+      console.warn(`[AUTH] Signup failed for ${email}:`, signUpError.message)
+      const msg = (signUpError.message || '').toLowerCase()
       if (
         msg.includes('already') ||
         msg.includes('exists') ||
-        createError.status === 422 ||
-        (createError as { code?: string }).code === 'email_exists'
+        signUpError.status === 422 ||
+        (signUpError as { code?: string }).code === 'email_exists' ||
+        (signUpError as { code?: string }).code === 'user_already_exists'
       ) {
         return NextResponse.json(
-          { error: 'An account with this email already exists. Sign in instead.' },
+          { error: 'An account with this email already exists. Sign in instead.', alreadyExists: true },
           { status: 409 }
         )
       }
       return NextResponse.json(
-        { error: createError.message || 'Failed to create account. Please try again.' },
+        { error: signUpError.message || 'Failed to create account. Please try again.' },
         { status: 400 }
       )
     }
 
     return NextResponse.json({
       success: true,
-      userId: createData.user?.id,
+      userId: signUpData.user?.id,
+      requiresOtp: true,
     })
   } catch (err) {
     console.error('[AUTH] Unexpected signup route error:', err)

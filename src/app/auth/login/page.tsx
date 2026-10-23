@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, Suspense } from 'react'
 import Link from 'next/link'
@@ -14,6 +14,7 @@ import {
   CheckCircle,
   Loader2,
   LogIn,
+  RefreshCw,
 } from 'lucide-react'
 
 function LoginForm() {
@@ -30,6 +31,7 @@ function LoginForm() {
   const isVerifiedParam = searchParams.get('verified') === 'true' || searchParams.get('confirmed') === 'true'
 
   const [loading, setLoading] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
   const [error, setError] = useState<string | null>(() => {
     if (urlErr === 'auth_callback_failed') {
       return 'Verification link is invalid or has expired. Please sign in below.'
@@ -41,54 +43,48 @@ function LoginForm() {
     if (isVerifiedParam) return 'Your account is ready! Please sign in.'
     return null
   })
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null)
+  const [resendSuccess, setResendSuccess] = useState(false)
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setSuccessNotice(null)
+    setUnverifiedEmail(null)
+    setResendSuccess(false)
     setLoading(true)
 
     try {
       const supabase = createClient()
       const cleanEmail = email.trim().toLowerCase()
 
-      let { data, error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password,
       })
 
-      // If user was created prior without auto-confirm, auto-confirm and retry
-      if (
-        signInError &&
-        (signInError.message?.toLowerCase().includes('not confirmed') ||
-          (signInError as { code?: string })?.code === 'email_not_confirmed')
-      ) {
-        try {
-          const confirmRes = await fetch('/api/auth/confirm-user', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: cleanEmail, password }),
-          })
-
-          if (confirmRes.ok) {
-            const retry = await supabase.auth.signInWithPassword({
-              email: cleanEmail,
-              password,
-            })
-            data = retry.data
-            signInError = retry.error
-          }
-        } catch (confirmErr) {
-          console.error('[AUTH] Auto-confirm error during login:', confirmErr)
-        }
-      }
-
       if (signInError) {
         const msg = (signInError.message || '').toLowerCase()
+        const code = (signInError as { code?: string }).code
+
+        // Unverified account — show helpful message with resend option
+        if (
+          msg.includes('not confirmed') ||
+          msg.includes('email not confirmed') ||
+          code === 'email_not_confirmed'
+        ) {
+          setUnverifiedEmail(cleanEmail)
+          setError(
+            'Your email address has not been verified yet. Please check your inbox for a verification email, or request a new one below.'
+          )
+          setLoading(false)
+          return
+        }
+
         if (msg.includes('invalid') || msg.includes('credentials') || signInError.status === 400) {
           setError('Invalid email or password. Please try again.')
         } else {
-          setError(signInError.message || 'Failed to sign in. Please try again.')
+          setError('Failed to sign in. Please try again.')
         }
         setLoading(false)
         return
@@ -101,10 +97,36 @@ function LoginForm() {
         setError('Failed to establish session. Please try again.')
         setLoading(false)
       }
-    } catch (err) {
-      console.error('[AUTH] Login error:', err)
+    } catch {
       setError('Unable to connect to the authentication server. Please try again.')
       setLoading(false)
+    }
+  }
+
+  async function handleResendVerification() {
+    if (!unverifiedEmail || resendLoading) return
+    setResendLoading(true)
+    setError(null)
+    setResendSuccess(false)
+
+    try {
+      const res = await fetch('/api/auth/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: unverifiedEmail, type: 'signup' }),
+      })
+
+      const data = await res.json().catch(() => ({})) as { error?: string }
+
+      if (!res.ok) {
+        setError(data.error || 'Failed to resend verification email. Please try again.')
+      } else {
+        setResendSuccess(true)
+      }
+    } catch {
+      setError('Network error. Could not resend verification email.')
+    } finally {
+      setResendLoading(false)
     }
   }
 
@@ -137,7 +159,57 @@ function LoginForm() {
           }}
         >
           <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>{error}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <span>{error}</span>
+            {unverifiedEmail && !resendSuccess && (
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resendLoading}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  background: 'none',
+                  border: '1px solid rgba(225, 29, 46, 0.4)',
+                  borderRadius: '4px',
+                  color: 'var(--accent-red)',
+                  cursor: resendLoading ? 'not-allowed' : 'pointer',
+                  padding: '0.3rem 0.6rem',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  width: 'fit-content',
+                }}
+              >
+                {resendLoading ? (
+                  <><Loader2 size={12} className="animate-spin" /> Sending&hellip;</>
+                ) : (
+                  <><RefreshCw size={12} /> Resend verification email</>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Resend success */}
+      {resendSuccess && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.625rem',
+            padding: '0.875rem',
+            background: 'rgba(34, 197, 94, 0.08)',
+            border: '1px solid rgba(34, 197, 94, 0.3)',
+            borderRadius: '6px',
+            color: '#4ade80',
+            fontSize: '0.85rem',
+            marginBottom: '1.25rem',
+          }}
+        >
+          <CheckCircle size={16} style={{ flexShrink: 0 }} />
+          <span>Verification email sent! Check your inbox and follow the instructions.</span>
         </div>
       )}
 
@@ -255,7 +327,7 @@ function LoginForm() {
           {loading ? (
             <>
               <Loader2 size={16} className="animate-spin" />
-              <span>Signing in…</span>
+              <span>Signing in&hellip;</span>
             </>
           ) : (
             <>
